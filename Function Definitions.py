@@ -2,7 +2,12 @@ import numpy as np
 import random
 import multiprocessing
 import yaml
+import time
 import matplotlib.pyplot as plt
+import os
+
+# Ensure the 'Plots' directory exists
+os.makedirs('Plots', exist_ok=True)
 
 # Design constraints
 def is_balanced_laminate(laminate):
@@ -220,18 +225,19 @@ def select_parents(population, fitness_values, method, num_parents):
 # Main Genetic Algorithm
 
 
-def genetic_algorithm(population_size, generations, alpha):
+def genetic_algorithm(population_size, generations, cost_param):
     """
     Runs the genetic algorithm for optimizing laminate design.
     
     Args:
         population_size (int): The number of laminates in the population.
         generations (int): The number of generations to evolve the population.
-        alpha (float): Weighting factor for cost versus weight in the fitness function.
+        cost_param (float): Weighting factor for cost versus weight in the fitness function.
     
     Returns:
         list of tuples: The best laminate design found after all generations.
     """
+    start_time = time.time()
 
     # Load parameters from YAML file
     with open('parameters.yml', 'r') as file:
@@ -263,7 +269,7 @@ def genetic_algorithm(population_size, generations, alpha):
     for generation in range(generations):
 
         # Evaluate fitness of the population without multiprocessing
-        fitness_values = [fitness_function(laminate, alpha) for laminate in population]
+        fitness_values = [fitness_function(laminate, cost_param) for laminate in population]
         
         # Sort population based on fitness values (lower is better)
         sorted_population = [x for _, x in sorted(zip(fitness_values, population))]
@@ -297,15 +303,12 @@ def genetic_algorithm(population_size, generations, alpha):
         population = new_population[:population_size]
 
         # Track the best laminate's weight and cost for this generation
-        best_laminate = min(population, key=lambda x: fitness_function(x, alpha))
+        best_laminate = min(population, key=lambda x: fitness_function(x, cost_param))
         weight_evolution.append(calculate_weight(best_laminate))
         cost_evolution.append(calculate_cost(best_laminate))
 
-        print(f"\nBest laminate of generation {generation + 1}: {best_laminate}")
-        print(f"Weight: {weight_evolution[-1]}, Cost: {cost_evolution[-1]}")
-
     # Return the best solution found after all generations
-    best_laminate = min(population, key=lambda x: fitness_function(x, alpha))
+    best_laminate = min(population, key=lambda x: fitness_function(x, cost_param))
 
     # Print final results
     print("Final Best Laminate Design:", best_laminate)
@@ -313,13 +316,100 @@ def genetic_algorithm(population_size, generations, alpha):
     print("Final Cost:", calculate_cost(best_laminate))
 
     # Generate evolution chart for weight and cost evolution on two y-axes
-    plt.figure(figsize=(10, 5))
-    plt.plot(range(generations), weight_evolution, label='Weight')
-    plt.plot(range(generations), cost_evolution, label='Cost')
-    plt.xlabel('Generation')
-    plt.ylabel('Value')
+    fig, ax1 = plt.subplots(figsize=(10, 5))
+
+    color = 'tab:blue'
+    ax1.set_xlabel('Generation')
+    ax1.set_ylabel('Weight', color=color)
+    ax1.plot(range(generations), weight_evolution, label='Weight', color=color)
+    ax1.tick_params(axis='y', labelcolor=color)
+
+    ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+    color = 'tab:red'
+    ax2.set_ylabel('Cost', color=color)  # we already handled the x-label with ax1
+    ax2.plot(range(generations), cost_evolution, label='Cost', color=color)
+    ax2.tick_params(axis='y', labelcolor=color)
+
+    fig.tight_layout()  # otherwise the right y-label is slightly clipped
     plt.title('Evolution of Weight and Cost over Generations')
+    plt.savefig('Plots/evolution_weight_cost.png')
+    plt.close()
+
+    # Plot to show pareto optimal solutions
+    final_generation_weights = [calculate_weight(laminate) for laminate in population]
+    final_generation_costs = [calculate_cost(laminate) for laminate in population]
+
+    # Identify pareto optimal solutions
+    pareto_optimal_indices = []
+    for i in range(len(final_generation_weights)):
+        dominated = False
+        for j in range(len(final_generation_weights)):
+            if (final_generation_weights[j] <= final_generation_weights[i] and
+                final_generation_costs[j] < final_generation_costs[i]) or \
+               (final_generation_weights[j] < final_generation_weights[i] and
+                final_generation_costs[j] <= final_generation_costs[i]):
+                dominated = True
+                break
+        if not dominated:
+            pareto_optimal_indices.append(i)
+
+    pareto_optimal_weights = [final_generation_weights[i] for i in pareto_optimal_indices]
+    pareto_optimal_costs = [final_generation_costs[i] for i in pareto_optimal_indices]
+
+    plt.figure(figsize=(10, 5))
+    plt.scatter(final_generation_weights, final_generation_costs, label='Laminates', alpha=0.5)
+    plt.scatter(pareto_optimal_weights, pareto_optimal_costs, color='red', label='Pareto Optimal', alpha=0.8)
+    plt.plot(pareto_optimal_weights, pareto_optimal_costs, color='red', linestyle='--', label='Pareto Front')
+    plt.xlabel('Weight')
+    plt.ylabel('Cost')
+    plt.title('Pareto Optimal Solutions in Final Generation')
     plt.legend()
-    plt.show()
+    plt.savefig('Plots/pareto_optimal_solutions.png')
+    plt.close()
+
+    # Additional Visualizations
+
+    # Plot the distribution of laminate angles in the final population
+    def plot_angle_distribution(population):
+        angles = [ply[1] for laminate in population for ply in laminate]
+        plt.figure(figsize=(10, 5))
+        plt.hist(angles, bins=range(-90, 105, 15), edgecolor='black')
+        plt.xlabel('Angle (degrees)')
+        plt.ylabel('Frequency')
+        plt.title('Distribution of Ply Angles in Final Population')
+        plt.savefig('Plots/angle_distribution.png')
+        plt.close()
+
+    # Plot the distribution of laminate thicknesses in the final population
+    def plot_thickness_distribution(population):
+        thicknesses = [ply[2] for laminate in population for ply in laminate]
+        plt.figure(figsize=(10, 5))
+        plt.hist(thicknesses, bins=20, edgecolor='black')
+        plt.xlabel('Thickness (meters)')
+        plt.ylabel('Frequency')
+        plt.title('Distribution of Ply Thicknesses in Final Population')
+        plt.savefig('Plots/thickness_distribution.png')
+        plt.close()
+
+    # Plot the distribution of laminate materials in the final population
+    def plot_material_distribution(population):
+        materials = [ply[0] for laminate in population for ply in laminate]
+        plt.figure(figsize=(10, 5))
+        plt.hist(materials, bins=len(set(materials)), edgecolor='black')
+        plt.xlabel('Material')
+        plt.ylabel('Frequency')
+        plt.title('Distribution of Ply Materials in Final Population')
+        plt.savefig('Plots/material_distribution.png')
+        plt.close()
+
+    # Call the visualization functions
+    plot_angle_distribution(population)
+    plot_thickness_distribution(population)
+    plot_material_distribution(population)
+
+    end_time = time.time()
+    total_time = end_time - start_time
+    minutes, seconds = divmod(total_time, 60)
+    print(f"Total run time: {int(minutes)} minutes and {seconds:.2f} seconds")
 
     return best_laminate
