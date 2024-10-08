@@ -225,7 +225,7 @@ def select_parents(population, fitness_values, method, num_parents):
 # Main Genetic Algorithm
 
 
-def genetic_algorithm(population_size, generations, cost_param):
+def genetic_algorithm():
     """
     Runs the genetic algorithm for optimizing laminate design.
     
@@ -248,6 +248,10 @@ def genetic_algorithm(population_size, generations, cost_param):
     ga_params = params['ga_params']
     min_ply = params['min_ply']
     max_ply = params['max_ply']
+    population_size = params['run_time_params']['population_size']
+    generations = params['run_time_params']['num_generations']
+    cost_param = params['run_time_params']['cost_param']
+
 
     # Gravitational acceleration constant
     G = params['gravity']
@@ -412,4 +416,9 @@ def genetic_algorithm(population_size, generations, cost_param):
     minutes, seconds = divmod(total_time, 60)
     print(f"Total run time: {int(minutes)} minutes and {seconds:.2f} seconds")
 
-    return best_laminate
+    # Exporting results to Excel
+    
+
+
+genetic_algorithm()
+

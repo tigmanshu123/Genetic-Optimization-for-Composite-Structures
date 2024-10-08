@@ -26,7 +26,7 @@ materials:
 
 gravity: 9.81  # Acceleration due to gravity (m/s^2)
 min_ply: 4  # Minimum number of plies in a laminate
-max_ply: 7  # Maximum number of plies in a laminate
+max_ply: 8  # Maximum number of plies in a laminate
 
 ga_params:
   crossover_prob: 0.67  # Probability of performing crossover between parents
@@ -40,3 +40,8 @@ ga_params:
   adaptive_mutation: true  # Whether mutation rates adapt based on population diversity
   diversity_threshold: 0.2  # Threshold for population diversity below which mutation rate increases
   mutation_rate_adaptive_factor: 0.05  # Factor to increase mutation rate if diversity is low
+
+run_time_params:
+  population_size: 100  # Number of individuals in the population
+  num_generations: 100  # Number of generations to run the genetic algorithm
+  cost_param: 0.5  # Weighting factor for cost in the objective function
