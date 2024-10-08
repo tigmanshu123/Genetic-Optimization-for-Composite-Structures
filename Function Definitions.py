@@ -579,30 +579,25 @@ def genetic_algorithm():
     # Exporting results to Excel
     # Exporting results to Excel
     def export_results_to_excel(best_laminate, weight_evolution, cost_evolution, pareto_optimal_weights, pareto_optimal_costs):
-        # Create a Pandas Excel writer using XlsxWriter as the engine
+        # Create a Pandas Excel writer using XlsxWriter as the engine.
         writer = pd.ExcelWriter('optimization_results.xlsx', engine='xlsxwriter')
+        
+        # Convert the data to a DataFrame and write it to the Excel file.
+        df_best_laminate = pd.DataFrame(best_laminate)
+        df_weight_evolution = pd.DataFrame(weight_evolution)
+        df_cost_evolution = pd.DataFrame(cost_evolution)
+        df_pareto_optimal_weights = pd.DataFrame(pareto_optimal_weights)
+        df_pareto_optimal_costs = pd.DataFrame(pareto_optimal_costs)
+        
+        df_best_laminate.to_excel(writer, sheet_name='Best Laminate')
+        df_weight_evolution.to_excel(writer, sheet_name='Weight Evolution')
+        df_cost_evolution.to_excel(writer, sheet_name='Cost Evolution')
+        df_pareto_optimal_weights.to_excel(writer, sheet_name='Pareto Optimal Weights')
+        df_pareto_optimal_costs.to_excel(writer, sheet_name='Pareto Optimal Costs')
+        
+        # Save and close the Excel file.
+        writer.close()
 
-        # Convert the best laminate to a DataFrame and write to Excel
-        best_laminate_df = pd.DataFrame(best_laminate, columns=['Material', 'Angle', 'Thickness'])
-        best_laminate_df.to_excel(writer, sheet_name='Best Laminate', index=False)
-
-        # Convert the weight and cost evolution to a DataFrame and write to Excel
-        evolution_df = pd.DataFrame({
-            'Generation': range(len(weight_evolution)),
-            'Weight': weight_evolution,
-            'Cost': cost_evolution
-        })
-        evolution_df.to_excel(writer, sheet_name='Evolution', index=False)
-
-        # Convert the Pareto optimal solutions to a DataFrame and write to Excel
-        pareto_df = pd.DataFrame({
-            'Weight': pareto_optimal_weights,
-            'Cost': pareto_optimal_costs
-        })
-        pareto_df.to_excel(writer, sheet_name='Pareto Optimal Solutions', index=False)
-
-        # Save the Excel file
-        writer.save()
 
     # Call the export function
     export_results_to_excel(best_laminate, weight_evolution, cost_evolution, pareto_optimal_weights, pareto_optimal_costs)
