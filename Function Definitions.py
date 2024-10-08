@@ -1,6 +1,5 @@
 import numpy as np
 import random
-import multiprocessing
 import yaml
 import time
 import matplotlib.pyplot as plt
@@ -8,6 +7,16 @@ import os
 
 # Ensure the 'Plots' directory exists
 os.makedirs('Plots', exist_ok=True)
+
+# Design constraints
+import numpy as np
+import random
+import yaml
+import time
+import matplotlib.pyplot as plt
+import os
+import pandas as pd
+
 
 # Design constraints
 def is_balanced_laminate(laminate):
@@ -21,7 +30,139 @@ def is_balanced_laminate(laminate):
         bool: True if the laminate is balanced, False otherwise.
     """
     angles = [ply[1] for ply in laminate]
-    return all(angles.count(angle) == angles.count(-angle) for angle in set(angles))
+    balanced = all(angles.count(angle) == angles.count(-angle) for angle in set(angles))
+    return balanced
+
+
+# Strength/safety criteria functions
+# Function to calculate the margin of safety for Maximum Stress Criterion (MSC)
+def maximum_stress_criterion(laminate):
+    """
+    Evaluates the margin of safety for each lamina based on the Maximum Stress Criterion.
+    
+    Args:
+        laminate (list of tuples): A list representing the laminate, where each tuple contains material, angle, and thickness.
+    
+    Returns:
+    - margin_safety: float, the minimum margin of safety for the given stresses and strengths
+    """
+    # Load parameters from parameters.yml
+    with open('parameters.yml', 'r') as file:
+        params = yaml.safe_load(file)
+
+    applied_stresses = params['applied_stresses']
+    margin_safeties = []
+
+    for ply in laminate:
+        material = ply[0]
+        strengths = params['materials'][material]
+        
+        sigma_1, sigma_2, tau_12 = applied_stresses['sigma_1'], applied_stresses['sigma_2'], applied_stresses['tau_12']
+        Xt, Xc, Yt, Yc, S = strengths['Xt'], strengths['Xc'], strengths['Yt'], strengths['Yc'], strengths['S']
+
+        # Calculate margin of safety for tensile and compressive stresses
+        margin_sigma_1 = Xt / sigma_1 if sigma_1 > 0 else abs(Xc / sigma_1)
+        margin_sigma_2 = Yt / sigma_2 if sigma_2 > 0 else abs(Yc / sigma_2)
+        margin_tau_12 = S / abs(tau_12)
+
+        # Minimum margin of safety for MSC
+        margin_safeties.append(min(margin_sigma_1, margin_sigma_2, margin_tau_12))
+    
+    min_margin_safety = min(margin_safeties)
+    return min_margin_safety
+
+# Function to calculate the margin of safety for Tsai-Wu Failure Criterion (TWC)
+def tsai_wu_criterion(laminate):
+    """
+    Evaluates the margin of safety for each lamina based on the Tsai-Wu Failure Criterion.
+    
+    Args:
+        laminate (list of tuples): A list representing the laminate, where each tuple contains material, angle, and thickness.
+    
+    Returns:
+    - margin_safety: float, the margin of safety for the given stresses and strengths
+    """
+    # Load parameters from parameters.yml
+    with open('parameters.yml', 'r') as file:
+        params = yaml.safe_load(file)
+
+    applied_stresses = params['applied_stresses']
+    margin_safeties = []
+
+    for ply in laminate:
+        material = ply[0]
+        strengths = params['materials'][material]
+        
+        sigma_1, sigma_2, tau_12 = applied_stresses['sigma_1'], applied_stresses['sigma_2'], applied_stresses['tau_12']
+        Xt, Xc, Yt, Yc, S = strengths['Xt'], strengths['Xc'], strengths['Yt'], strengths['Yc'], strengths['S']
+
+        F1 = 1/Xt - 1/Xc
+        F2 = 1/Yt - 1/Yc
+        F11 = 1/(Xt * Xc)
+        F22 = 1/(Yt * Yc)
+        F12 = -0.5 * np.sqrt(F11 * F22)
+        F66 = 1/S**2
+
+        # Tsai-Wu failure index
+        tsai_wu_index = F11 * sigma_1**2 + F22 * sigma_2**2 + 2 * F12 * sigma_1 * sigma_2 + F66 * tau_12**2
+        margin_safeties.append(1 / tsai_wu_index)
+    
+    min_margin_safety = min(margin_safeties)
+    return min_margin_safety
+
+# Function to calculate the margin of safety for Distortional Energy Failure Criterion (DEC)
+def distortional_energy_criterion(laminate):
+    """
+    Evaluates the margin of safety for each lamina based on the Distortional Energy Failure Criterion.
+    
+    Args:
+        laminate (list of tuples): A list representing the laminate, where each tuple contains material, angle, and thickness.
+    
+    Returns:
+    - margin_safety: float, the margin of safety for the given stresses and strengths
+    """
+    # Load parameters from parameters.yml
+    with open('parameters.yml', 'r') as file:
+        params = yaml.safe_load(file)
+
+    applied_stresses = params['applied_stresses']
+    margin_safeties = []
+
+    for ply in laminate:
+        material = ply[0]
+        strengths = params['materials'][material]
+        
+        sigma_1, sigma_2, tau_12 = applied_stresses['sigma_1'], applied_stresses['sigma_2'], applied_stresses['tau_12']
+        F1, F2, F12 = strengths['F1'], strengths['F2'], strengths['F12']
+
+        # Distortional Energy failure index
+        distortional_energy_index = (sigma_1 / F1)**2 + (sigma_2 / F2)**2 + (tau_12 / F12)**2
+        margin_safeties.append(1 / distortional_energy_index)
+    
+    min_margin_safety = min(margin_safeties)
+    return min_margin_safety
+
+
+
+# Wrapper function to check all safety constraints for a given laminate
+def check_safety_criteria(laminate):
+    """
+    Checks all safety criteria for a given laminate and returns the minimum margin of safety.
+    
+    Args:
+        laminate (list of tuples): A list representing the laminate, where each tuple contains material, angle, and thickness.
+    
+    Returns:
+    - min_margin_safety: float, the minimum margin of safety across all criteria
+    """
+    msc_margin = maximum_stress_criterion(laminate)
+    twc_margin = tsai_wu_criterion(laminate)
+    dec_margin = distortional_energy_criterion(laminate)
+
+    # Ensure all safety constraints are satisfied
+    min_margin_safety = min(msc_margin, twc_margin, dec_margin)
+    return min_margin_safety
+
 
 # Objective function
 def calculate_weight(laminate):
@@ -70,10 +211,11 @@ def calculate_cost(laminate):
         cost += fm * thickness
     return cost
 
+# Fitness function
 def fitness_function(laminate, alpha):
     """
     Calculates the fitness score for the given laminate design.
-    The fitness is calculated as a weighted combination of cost and weight, penalizing unbalanced laminates.
+    The fitness is calculated as a weighted combination of cost and weight, penalizing unbalanced laminates and safety violations.
     
     Args:
         laminate (list of tuples): A list representing the laminate, where each tuple contains material, angle, and thickness.
@@ -84,10 +226,21 @@ def fitness_function(laminate, alpha):
     """
     weight = calculate_weight(laminate)
     cost = calculate_cost(laminate)
+    
+    # Evaluate safety criteria
+    min_margin_safety = check_safety_criteria(laminate)
+
+    # Penalize if the laminate does not meet safety constraints
     penalty = 0
+    if min_margin_safety < 1.0:  # Minimum acceptable margin of safety
+        penalty += 1e6  # Heavy penalty for failing safety criteria
+    
     if not is_balanced_laminate(laminate):
         penalty += 1e6  # Penalty for unbalanced laminates
+
     return alpha * cost + (1 - alpha) * weight + penalty
+
+
 
 # Genetic Algorithm Operators
 def crossover(parent1, parent2, method):
@@ -256,9 +409,16 @@ def genetic_algorithm():
     # Gravitational acceleration constant
     G = params['gravity']
 
+    # Allowable angles for the plies
+    allowable_angles = params['allowable_angles']
+
+    # Allowable ply thicknesses
+    ply_thickness_lower_limit = params['ply_thickness_lower_limit']
+    ply_thickness_upper_limit = params['ply_thickness_upper_limit']
+
     # Initialize random population of laminates
     population = [
-        [(random.choice(list(MATERIALS.keys())), random.choice([0, 15, 30, 45, 60, 75, 90]), random.uniform(0.1, 0.5))
+        [(random.choice(list(MATERIALS.keys())), random.choice(allowable_angles), random.uniform(ply_thickness_lower_limit, ply_thickness_upper_limit))
          for _ in range(random.randint(min_ply, max_ply))]
         for _ in range(population_size)
     ]
@@ -417,8 +577,36 @@ def genetic_algorithm():
     print(f"Total run time: {int(minutes)} minutes and {seconds:.2f} seconds")
 
     # Exporting results to Excel
-    
+    # Exporting results to Excel
+    def export_results_to_excel(best_laminate, weight_evolution, cost_evolution, pareto_optimal_weights, pareto_optimal_costs):
+        # Create a Pandas Excel writer using XlsxWriter as the engine
+        writer = pd.ExcelWriter('optimization_results.xlsx', engine='xlsxwriter')
 
+        # Convert the best laminate to a DataFrame and write to Excel
+        best_laminate_df = pd.DataFrame(best_laminate, columns=['Material', 'Angle', 'Thickness'])
+        best_laminate_df.to_excel(writer, sheet_name='Best Laminate', index=False)
 
+        # Convert the weight and cost evolution to a DataFrame and write to Excel
+        evolution_df = pd.DataFrame({
+            'Generation': range(len(weight_evolution)),
+            'Weight': weight_evolution,
+            'Cost': cost_evolution
+        })
+        evolution_df.to_excel(writer, sheet_name='Evolution', index=False)
+
+        # Convert the Pareto optimal solutions to a DataFrame and write to Excel
+        pareto_df = pd.DataFrame({
+            'Weight': pareto_optimal_weights,
+            'Cost': pareto_optimal_costs
+        })
+        pareto_df.to_excel(writer, sheet_name='Pareto Optimal Solutions', index=False)
+
+        # Save the Excel file
+        writer.save()
+
+    # Call the export function
+    export_results_to_excel(best_laminate, weight_evolution, cost_evolution, pareto_optimal_weights, pareto_optimal_costs)
+
+# Run the genetic algorithm to optimize laminate design and visualize results
 genetic_algorithm()
 

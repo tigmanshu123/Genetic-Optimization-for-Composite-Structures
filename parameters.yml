@@ -7,6 +7,12 @@ materials:
     Yt: 0.07  # Tensile strength in the transverse direction (MPa)
     Yc: 0.24  # Compressive strength in the transverse direction (MPa)
     S: 0.11  # Shear strength (MPa)
+    E1: 135000  # Elastic modulus in the longitudinal direction (MPa)
+    E2: 10000   # Elastic modulus in the transverse direction (MPa)
+    F1: 1.0  # Distortional energy strength parameter F1 (arbitrary units)
+    F2: 1.0  # Distortional energy strength parameter F2 (arbitrary units)
+    F12: 0.5  # Distortional energy strength parameter F12 (arbitrary units)
+    
   Glass Epoxy:
     density: 1993  # Density in kg/m^3
     cost_factor: 10  # Cost factor (arbitrary units)
@@ -15,6 +21,12 @@ materials:
     Yt: 0.05  # Tensile strength in the transverse direction (MPa)
     Yc: 0.15  # Compressive strength in the transverse direction (MPa)
     S: 0.08  # Shear strength (MPa)
+    E1: 40000  # Elastic modulus in the longitudinal direction (MPa)
+    E2: 8000   # Elastic modulus in the transverse direction (MPa)
+    F1: 0.8  # Distortional energy strength parameter F1 (arbitrary units)
+    F2: 0.8  # Distortional energy strength parameter F2 (arbitrary units)
+    F12: 0.4  # Distortional energy strength parameter F12 (arbitrary units)
+    
   Kevlar Epoxy:
     density: 1380  # Density in kg/m^3
     cost_factor: 44  # Cost factor (arbitrary units)
@@ -23,10 +35,18 @@ materials:
     Yt: 0.03  # Tensile strength in the transverse direction (MPa)
     Yc: 0.16  # Compressive strength in the transverse direction (MPa)
     S: 0.05  # Shear strength (MPa)
+    E1: 70000  # Elastic modulus in the longitudinal direction (MPa)
+    E2: 5000   # Elastic modulus in the transverse direction (MPa)
+    F1: 0.6  # Distortional energy strength parameter F1 (arbitrary units)
+    F2: 0.5  # Distortional energy strength parameter F2 (arbitrary units)
+    F12: 0.3  # Distortional energy strength parameter F12 (arbitrary units)
 
 gravity: 9.81  # Acceleration due to gravity (m/s^2)
-min_ply: 4  # Minimum number of plies in a laminate
-max_ply: 8  # Maximum number of plies in a laminate
+min_ply: 10  # Minimum number of plies in a laminate
+max_ply: 100  # Maximum number of plies in a laminate
+allowable_angles: [0, 15, 30, 45, 60, 75, 90, -15, -30, -45, -60, -75, -90]  # Allowable ply angles (degrees)
+ply_thickness_lower_limit: 0.1  # Lower limit for ply thickness (mm)
+ply_thickness_upper_limit: 0.5  # Upper limit for ply thickness (mm)
 
 ga_params:
   crossover_prob: 0.67  # Probability of performing crossover between parents
@@ -42,6 +62,11 @@ ga_params:
   mutation_rate_adaptive_factor: 0.05  # Factor to increase mutation rate if diversity is low
 
 run_time_params:
-  population_size: 100  # Number of individuals in the population
-  num_generations: 100  # Number of generations to run the genetic algorithm
+  population_size: 50  # Number of individuals in the population
+  num_generations: 50  # Number of generations to run the genetic algorithm
   cost_param: 0.5  # Weighting factor for cost in the objective function
+
+applied_stresses:
+  sigma_1: 0.0005  # Stress in the longitudinal direction (MPa)
+  sigma_2: 0.0004   # Stress in the transverse direction (MPa)
+  tau_12: 0.00004    # Shear stress (MPa)
