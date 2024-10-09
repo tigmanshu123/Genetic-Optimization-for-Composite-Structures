@@ -62,11 +62,11 @@ ga_params:
   mutation_rate_adaptive_factor: 0.05  # Factor to increase mutation rate if diversity is low
 
 run_time_params:
-  population_size: 50  # Number of individuals in the population
-  num_generations: 50  # Number of generations to run the genetic algorithm
+  population_size: 300  # Number of individuals in the population
+  num_generations: 100  # Number of generations to run the genetic algorithm
   cost_param: 0.5  # Weighting factor for cost in the objective function
 
 applied_stresses:
-  sigma_1: 0.0005  # Stress in the longitudinal direction (MPa)
-  sigma_2: 0.0004   # Stress in the transverse direction (MPa)
-  tau_12: 0.00004    # Shear stress (MPa)
+  sigma_1: 0.005  # Stress in the longitudinal direction (MPa)
+  sigma_2: 0.004   # Stress in the transverse direction (MPa)
+  tau_12: 0.0004    # Shear stress (MPa)

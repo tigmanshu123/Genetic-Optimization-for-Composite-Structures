@@ -432,6 +432,8 @@ def genetic_algorithm():
 
     for generation in range(generations):
 
+        print(f"Generation {generation + 1}/{generations}")
+        
         # Evaluate fitness of the population without multiprocessing
         fitness_values = [fitness_function(laminate, cost_param) for laminate in population]
         
